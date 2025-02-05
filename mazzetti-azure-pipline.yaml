@@ -1,0 +1,60 @@
+# ASP.NET Core (.NET Framework)
+# Build and test ASP.NET Core projects targeting the full .NET Framework.
+# Add steps that publish symbols, save build artifacts, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/dotnet-core
+
+trigger:
+  tags:
+    include:
+     - mazzetti/*
+
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+  solution: '**/CodeBeamMudExtensions.sln'
+  project: '**/CodeBeam.MudBlazor.Extensions.csproj'
+  buildPlatform: 'Any CPU'
+  buildConfiguration: 'Release'
+
+steps:
+- task: Bash@3
+  displayName: Set Build Number
+  inputs:
+    targetType: 'inline'
+    script: |
+      echo "##vso[build.updatebuildnumber]$(echo $(Build.SourceBranch) | awk -F'/' '{print $NF}')"
+
+- task: NuGetToolInstaller@1
+
+- task: NuGetCommand@2
+  displayName: 'NuGet Restore'
+  inputs:
+    restoreSolution: '$(solution)'
+
+- task: DotNetCoreCLI@2
+  displayName: Build
+  inputs:
+    command: build
+    projects: $(project)
+    configuration: $(buildConfiguration)
+
+- task: DotNetCoreCLI@2
+  displayName: Test
+  inputs:
+    command: test
+    projects: $(solution)
+    configuration: $(buildConfiguration)
+
+- task: DotNetCoreCLI@2
+  displayName: NuGet Pack
+  inputs:
+    command: pack
+    packagesToPack: $(project)
+    versioningScheme: byBuildNumber
+
+- task: DotNetCoreCLI@2
+  displayName: NuGet Push
+  inputs:
+    command: push
+    feedPublish: 3581e6e5-cb10-46c6-b72f-3145967d5a94
